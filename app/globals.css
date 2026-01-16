@@ -1,0 +1,391 @@
+@import 'tailwindcss';
+
+/* ============================================
+   Theme Configuration (Tailwind v4)
+   ============================================ */
+@theme {
+  /* Gray */
+  --color-gray-50: #FAFAFA;
+  --color-gray-100: #F5F5F5;
+  --color-gray-200: #E5E5E5;
+  --color-gray-300: #D4D4D4;
+  --color-gray-400: #A3A3A3;
+  --color-gray-500: #737373;
+  --color-gray-600: #525252;
+  --color-gray-700: #404040;
+  --color-gray-800: #262626;
+  --color-gray-900: #171717;
+  --color-gray-950: #0A0A0A;
+
+  /* Accent (Blue) */
+  --color-accent-50: #EFF6FF;
+  --color-accent-100: #DBEAFE;
+  --color-accent-200: #BFDBFE;
+  --color-accent-300: #93C5FD;
+  --color-accent-400: #60A5FA;
+  --color-accent-500: #3B82F6;
+  --color-accent-600: #2563EB;
+  --color-accent-700: #1D4ED8;
+  --color-accent-800: #1E40AF;
+  --color-accent-900: #1E3A8A;
+  --color-accent-950: #172554;
+
+  /* Green */
+  --color-green-50: #F0FDF4;
+  --color-green-100: #DCFCE7;
+  --color-green-200: #BBF7D0;
+  --color-green-300: #86EFAC;
+  --color-green-400: #4ADE80;
+  --color-green-500: #22C55E;
+  --color-green-600: #16A34A;
+  --color-green-700: #15803D;
+  --color-green-800: #166534;
+  --color-green-900: #14532D;
+  --color-green-950: #052E16;
+
+  /* Orange */
+  --color-orange-50: #FFFAEB;
+  --color-orange-100: #FEEFC7;
+  --color-orange-200: #FEDF89;
+  --color-orange-300: #FEC84B;
+  --color-orange-400: #FDB022;
+  --color-orange-500: #F79009;
+  --color-orange-600: #DC6803;
+  --color-orange-700: #B54708;
+  --color-orange-800: #93370D;
+  --color-orange-900: #792E0D;
+
+  /* Red */
+  --color-red-50: #FEF2F2;
+  --color-red-100: #FEE2E2;
+  --color-red-200: #FECACA;
+  --color-red-300: #FCA5A5;
+  --color-red-400: #F87171;
+  --color-red-500: #EF4444;
+  --color-red-600: #DC2626;
+  --color-red-700: #B91C1C;
+  --color-red-800: #991B1B;
+  --color-red-900: #7F1D1D;
+  --color-red-950: #450A0A;
+
+  /* Yellow */
+  --color-yellow-500: #EAB308;
+}
+
+/* ============================================
+   Base Styles
+   ============================================ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* ============================================
+   CSS Variables (Design Tokens)
+   ============================================ */
+:root {
+  /* Layout */
+  --header-height: 54px;
+  --chat-max-width: 48rem;
+  --chat-width: 30rem;
+  --workbench-width: min(calc(100% - var(--chat-width)), 2536px);
+  --workbench-inner-width: var(--workbench-width);
+  --workbench-left: calc(100% - var(--workbench-width));
+
+  /* Z-Index Scale */
+  --z-base: 0;
+  --z-prompt: 2;
+  --z-workbench: 3;
+  --z-header: 40;
+  --z-sidebar: 50;
+  --z-modal: 100;
+  --z-tooltip: 200;
+  --z-toast: 300;
+  --z-max: 999;
+
+  /* Gradients */
+  --gradient-opacity: 0.8;
+  --primary-color: rgba(158, 117, 240, var(--gradient-opacity));
+  --secondary-color: rgba(138, 43, 226, var(--gradient-opacity));
+  --accent-color: rgba(128, 59, 239, var(--gradient-opacity));
+}
+
+/* ============================================
+   Light Theme (Default)
+   ============================================ */
+:root,
+[data-theme='light'] {
+  color-scheme: light;
+
+  /* Backgrounds */
+  --bg-primary: #ffffff;
+  --bg-secondary: #F5F7FA;
+  --bg-tertiary: #E8EBF0;
+  --bg-muted: rgba(23, 23, 23, 0.3);
+
+  /* Text */
+  --text-primary: var(--color-gray-950);
+  --text-secondary: var(--color-gray-600);
+  --text-tertiary: var(--color-gray-500);
+  --text-success: var(--color-green-500);
+  --text-warning: var(--color-yellow-500);
+  --text-error: var(--color-red-500);
+
+  /* Borders */
+  --border-color: var(--color-gray-200);
+  --border-color-active: var(--color-accent-500);
+  --divider-color: var(--color-gray-400);
+
+  /* Buttons */
+  --btn-primary-bg: var(--color-accent-500);
+  --btn-primary-bg-hover: var(--color-accent-600);
+  --btn-primary-text: var(--color-gray-50);
+
+  --btn-secondary-bg: var(--color-gray-200);
+  --btn-secondary-bg-hover: var(--color-gray-300);
+  --btn-secondary-text: var(--color-gray-700);
+
+  --btn-danger-bg: var(--color-red-500);
+  --btn-danger-bg-hover: var(--color-red-600);
+  --btn-danger-text: var(--color-gray-50);
+
+  /* Code */
+  --code-bg: var(--color-gray-200);
+  --code-text: var(--color-gray-950);
+
+  /* Icons */
+  --icon-primary: var(--color-gray-950);
+  --icon-secondary: var(--color-gray-600);
+  --icon-success: var(--color-green-500);
+  --icon-error: var(--color-red-500);
+
+  /* Scrollbar */
+  --scrollbar-thumb: var(--color-gray-500);
+  --scrollbar-thumb-hover: var(--color-gray-400);
+
+  /* Links */
+  --link-color: var(--color-accent-600);
+
+  /* Shadows */
+  --shadow-dropdown: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* ============================================
+   Dark Theme
+   ============================================ */
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* Backgrounds */
+  --bg-primary: #131826;
+  --bg-secondary: #1E293B;
+  --bg-tertiary: #0A0E1A;
+  --bg-muted: rgba(255, 255, 255, 0.05);
+
+  /* Text */
+  --text-primary: #ffffff;
+  --text-secondary: var(--color-gray-300);
+  --text-tertiary: var(--color-gray-400);
+  --text-success: var(--color-green-500);
+  --text-warning: var(--color-yellow-500);
+  --text-error: var(--color-red-500);
+
+  /* Borders */
+  --border-color: #334155;
+  --border-color-active: var(--color-accent-500);
+  --divider-color: var(--color-gray-100);
+
+  /* Buttons */
+  --btn-primary-bg: var(--color-accent-500);
+  --btn-primary-bg-hover: var(--color-accent-600);
+  --btn-primary-text: #ffffff;
+
+  --btn-secondary-bg: #334155;
+  --btn-secondary-bg-hover: #475569;
+  --btn-secondary-text: #ffffff;
+
+  --btn-danger-bg: var(--color-red-500);
+  --btn-danger-bg-hover: var(--color-red-600);
+  --btn-danger-text: #ffffff;
+
+  /* Code */
+  --code-bg: var(--color-gray-800);
+  --code-text: #ffffff;
+
+  /* Icons */
+  --icon-primary: var(--color-gray-950);
+  --icon-secondary: var(--color-gray-600);
+  --icon-success: var(--color-green-400);
+  --icon-error: var(--color-red-400);
+
+  /* Scrollbar */
+  --scrollbar-thumb: var(--color-gray-300);
+  --scrollbar-thumb-hover: var(--color-gray-400);
+
+  /* Links */
+  --link-color: var(--color-accent-400);
+
+  /* Shadows */
+  --shadow-dropdown: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+}
+
+/* ============================================
+   Scrollbar
+   ============================================ */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+/* ============================================
+   Utility Classes
+   ============================================ */
+
+/* Z-Index */
+.z-prompt { z-index: var(--z-prompt); }
+.z-workbench { z-index: var(--z-workbench); }
+.z-header { z-index: var(--z-header); }
+.z-sidebar { z-index: var(--z-sidebar); }
+.z-modal { z-index: var(--z-modal); }
+.z-tooltip { z-index: var(--z-tooltip); }
+.z-toast { z-index: var(--z-toast); }
+.z-max { z-index: var(--z-max); }
+
+/* Legacy z-index classes */
+.z-logo { z-index: calc(var(--z-max) - 1); }
+.z-port-dropdown { z-index: calc(var(--z-max) - 3); }
+.z-iframe-overlay { z-index: calc(var(--z-max) - 4); }
+.z-file-tree-breadcrumb { z-index: calc(var(--z-max) - 1); }
+
+/* ============================================
+   Animations
+   ============================================ */
+.animated {
+  animation-fill-mode: both;
+  animation-duration: var(--animate-duration, 0.2s);
+  animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+}
+
+.animated.fadeInRight { animation-name: fadeInRight; }
+.animated.fadeOutRight { animation-name: fadeOutRight; }
+
+@keyframes fadeInRight {
+  from {
+    opacity: 0;
+    transform: translate3d(100%, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes fadeOutRight {
+  from { opacity: 1; }
+  to {
+    opacity: 0;
+    transform: translate3d(100%, 0, 0);
+  }
+}
+
+.dropdown-animation {
+  opacity: 0;
+  animation: fadeMoveDown 0.15s forwards cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes fadeMoveDown {
+  to {
+    opacity: 1;
+    transform: translateY(6px);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 40px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================
+   Components
+   ============================================ */
+
+/* Code Blocks */
+pre code {
+  background: var(--code-bg);
+  color: var(--code-text);
+}
+
+/* Resize Handle */
+[data-resize-handle] {
+  position: relative;
+}
+
+[data-resize-handle][data-panel-group-direction='horizontal']::after {
+  content: '';
+  position: absolute;
+  inset: 0 -5px 0 -6px;
+  z-index: var(--z-max);
+}
+
+[data-resize-handle][data-panel-group-direction='vertical']::after {
+  content: '';
+  position: absolute;
+  inset: -5px 0 -6px 0;
+  z-index: var(--z-max);
+}
+
+[data-resize-handle][data-resize-handle-state='hover']::after,
+[data-resize-handle][data-resize-handle-state='drag']::after {
+  background-color: rgba(136, 136, 136, 0.13);
+}
+
+.resize-handle {
+  background: var(--border-color);
+  transition: background 0.2s;
+}
+
+.resize-handle:hover {
+  background: var(--border-color-active);
+}

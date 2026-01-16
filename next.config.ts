@@ -1,11 +1,5 @@
 import type { NextConfig } from "next";
-import UnoCSS from '@unocss/webpack'
 
-const nextConfig: NextConfig = {
-  webpack: (config) => {
-    config.plugins.push(UnoCSS())
-    return config
-  },
-};
+const nextConfig: NextConfig = {};
 
 export default nextConfig;

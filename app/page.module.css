@@ -91,6 +91,7 @@ a.primary {
 
 a.secondary {
   border-color: var(--button-secondary-border);
+  color: var(--text-primary);
 }
 
 /* Enable hover only on non-touch devices */
@@ -136,6 +137,6 @@ a.secondary {
 
     --button-primary-hover: #ccc;
     --button-secondary-hover: #1a1a1a;
-    --button-secondary-border: #1a1a1a;
+    --button-secondary-border: #444;
   }
 }
