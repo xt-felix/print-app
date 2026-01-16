@@ -2,6 +2,245 @@
 
 本文档详细说明如何将现有的 Remix Logto 认证迁移到 Next.js。
 
+---
+
+## 架构设计理念
+
+### 为什么采用这种分层架构？
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      middleware.ts                          │
+│              (Edge Runtime - 快速拦截)                       │
+├─────────────────────────────────────────────────────────────┤
+│                    API Routes                               │
+│    sign-in / sign-out / callback / user                     │
+│              (HTTP 端点 - OAuth 流程)                        │
+├─────────────────────────────────────────────────────────────┤
+│                     lib/auth/                               │
+│  ┌─────────┐  ┌──────────┐  ┌─────────┐  ┌──────────┐      │
+│  │ logto.ts│  │session.ts│  │config.ts│  │ types.ts │      │
+│  │ (核心)  │  │ (会话)   │  │ (配置)  │  │ (类型)   │      │
+│  └─────────┘  └──────────┘  └─────────┘  └──────────┘      │
+│              (Node.js Runtime - 完整功能)                    │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### 1. 分离关注点 (Separation of Concerns)
+
+| 文件 | 职责 | 为什么分离 |
+|------|------|-----------|
+| `types.ts` | 类型定义 | 避免循环依赖，提供清晰的接口契约 |
+| `config.ts` | 配置管理 | 集中管理环境变量，便于修改和测试 |
+| `session.ts` | 会话存储 | Cookie 操作独立，可替换存储方案 |
+| `logto.ts` | 核心逻辑 | 认证业务逻辑集中，便于维护 |
+| `index.ts` | 统一导出 | 简化外部导入，控制公开 API |
+
+#### 2. 双运行时设计
+
+Next.js 有两种运行时，我们的架构需要同时支持：
+
+```
+┌─────────────────────────────────────┐
+│         Edge Runtime                │
+│  • middleware.ts                    │
+│  • 限制：不能用 Node.js API         │
+│  • 优势：全球边缘节点，延迟低        │
+│  • 用途：快速验证 JWT，拦截请求      │
+└─────────────────────────────────────┘
+                  │
+                  ▼
+┌─────────────────────────────────────┐
+│         Node.js Runtime             │
+│  • API Routes                       │
+│  • Server Components                │
+│  • 能力：完整 Node.js API           │
+│  • 用途：OAuth 流程，数据库操作      │
+└─────────────────────────────────────┘
+```
+
+**为什么 middleware 只做 JWT 验证？**
+- Edge Runtime 不支持 `cookies()` 的完整写入操作
+- OAuth 回调需要设置 Cookie，必须在 Node.js Runtime
+- 轻量验证放 Edge，复杂操作放 API Routes
+
+#### 3. 三级用户优先级
+
+```typescript
+// getUser() 的优先级设计
+async function getUser(): Promise<AuthContext> {
+  // 1️⃣ 开发环境 Mock 用户 (最高优先级)
+  if (!shouldEnforceAuth()) {
+    return getMockDevUser();
+  }
+
+  // 2️⃣ 虚拟用户 (管理后台登录)
+  const virtualUser = await getVirtualUser();
+  if (virtualUser) {
+    return virtualUser;
+  }
+
+  // 3️⃣ Logto 真实用户
+  const context = await logtoClient.getLogtoContext();
+  // ...
+}
+```
+
+**为什么需要这三级？**
+
+| 级别 | 场景 | 用途 |
+|------|------|------|
+| Mock 用户 | `LOGTO_ENABLE=false` | 开发环境无需配置 Logto 即可运行 |
+| 虚拟用户 | 管理后台代登录 | 客服/管理员模拟用户操作 |
+| 真实用户 | 生产环境 | 正常的 OAuth 认证流程 |
+
+---
+
+### 为什么使用 JWT 加密 Cookie？
+
+```typescript
+// session.ts 中的加密逻辑
+async function encryptSession(data: Record<string, unknown>): Promise<string> {
+  return new SignJWT(data)
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('30d')
+    .sign(getSecretKey());
+}
+```
+
+**对比其他方案：**
+
+| 方案 | 优点 | 缺点 |
+|------|------|------|
+| **JWT 加密 Cookie** ✅ | 无状态、可验证、防篡改 | Cookie 大小限制 4KB |
+| 明文 Cookie | 简单 | 不安全，可被篡改 |
+| Session ID + Redis | 存储大数据 | 需要额外基础设施 |
+| LocalStorage | 存储大 | 仅客户端，XSS 风险 |
+
+**选择 JWT Cookie 的原因：**
+1. **无状态** - 不需要 Redis 等外部存储
+2. **可验证** - middleware 可以快速验证签名
+3. **防篡改** - HMAC 签名保证数据完整性
+4. **自动过期** - JWT 内置 `exp` 声明
+
+---
+
+### 为什么 API Routes 需要 `dynamic = 'force-dynamic'`？
+
+```typescript
+// app/api/auth/sign-in/route.ts
+export const dynamic = 'force-dynamic';
+```
+
+**Next.js 默认会尝试静态化 API Routes。** 对于认证相关的路由：
+
+| 问题 | 不加 `force-dynamic` | 加了 `force-dynamic` |
+|------|---------------------|---------------------|
+| Cookie 读写 | 可能失败 | 正常工作 |
+| 环境变量 | 构建时固定 | 运行时读取 |
+| 用户状态 | 可能缓存错误状态 | 每次请求重新计算 |
+
+---
+
+### Middleware vs API Route 认证检查
+
+```
+请求流程:
+┌────────┐    ┌────────────┐    ┌────────────┐    ┌──────────┐
+│ Client │───▶│ Middleware │───▶│ API Route  │───▶│ Handler  │
+└────────┘    │ (快速检查) │    │ (详细检查) │    └──────────┘
+              └────────────┘    └────────────┘
+                   │                  │
+                   ▼                  ▼
+              JWT 签名验证       完整认证上下文
+              (仅检查有效性)     (获取用户信息)
+```
+
+**为什么需要两层检查？**
+
+| 层级 | Middleware | API Route (`requireAuth`) |
+|------|------------|--------------------------|
+| 运行位置 | Edge | Node.js |
+| 检查内容 | JWT 签名有效性 | 完整用户信息 |
+| 性能 | 极快 (< 1ms) | 较慢 (可能调用 Logto API) |
+| 职责 | 拦截明显无效请求 | 获取业务需要的用户数据 |
+
+**示例：受保护的 API**
+```typescript
+export async function POST(request: NextRequest) {
+  // 1. Middleware 已经做了基本 JWT 验证
+  // 2. 这里获取完整用户信息用于业务逻辑
+  const authResult = await requireAuth({ isApi: true });
+
+  if (authResult instanceof NextResponse) {
+    return authResult; // 未认证
+  }
+
+  const userId = authResult.userInfo?.sub;
+  // ... 使用 userId 进行业务操作
+}
+```
+
+---
+
+### Cookie 安全配置解释
+
+```typescript
+export const cookieConfig = {
+  httpOnly: true,      // 防止 XSS 攻击读取 Cookie
+  path: '/',           // 全站可用
+  sameSite: 'lax',     // 防止 CSRF，同时允许顶级导航
+  secure: process.env.NODE_ENV === 'production',  // 生产环境强制 HTTPS
+  maxAge: 60 * 60 * 24 * 30,  // 30 天有效期
+};
+```
+
+| 配置 | 值 | 安全作用 |
+|------|------|---------|
+| `httpOnly` | `true` | JavaScript 无法读取，防 XSS |
+| `sameSite` | `'lax'` | 跨站请求不发送，防 CSRF |
+| `secure` | 生产 `true` | 仅 HTTPS 传输，防中间人 |
+| `maxAge` | 30 天 | 限制有效期，降低泄露风险 |
+
+---
+
+### 错误处理策略
+
+```typescript
+// handleCallback 中的错误处理
+export async function handleCallback(request: Request): Promise<Response> {
+  try {
+    // ... 正常流程
+  } catch (error) {
+    // 1. 记录详细错误（服务端日志）
+    console.error('[Auth] 回调处理失败:', error);
+
+    // 2. 给用户友好提示（不暴露技术细节）
+    let errorMessage = '登录失败，请稍后再试';
+
+    if (error instanceof Error) {
+      if (error.message.includes('fetch failed')) {
+        errorMessage = '无法连接到认证服务器，请检查网络连接';
+      }
+    }
+
+    // 3. 存储错误到 Cookie（用于前端显示）
+    await setAuthError(errorMessage);
+
+    // 4. 重定向回首页
+    return Response.redirect(logtoConfig.baseUrl);
+  }
+}
+```
+
+**设计原则：**
+1. **不暴露技术细节** - 用户看到友好提示，不是堆栈跟踪
+2. **日志记录完整** - 开发者可以排查问题
+3. **优雅降级** - 出错也能继续使用应用
+
+---
+
 ## 目录结构
 
 ```
